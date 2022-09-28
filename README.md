@@ -1,11 +1,12 @@
 # mercari-bot
 Scan Mercari in realtime for new listings containing specific keywords
 
-Uses [NestJS](https://nestjs.com/) for the backend & [Vue 3](https://vuejs.org/) for the frontend.
+Uses [NestJS](https://nestjs.com/) & [Puppeteer](https://pptr.dev/) for the backend & [Vue 3](https://vuejs.org/) for the frontend.
 
 ## Requirements
 - NodeJS
 - NPM 
+- Chrome Driver, if on linux
 
 ## Installation
 
