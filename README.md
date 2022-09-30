@@ -29,6 +29,7 @@ npm run start:dev
 ```
 
 Then just head to https://localhost:5173/ to view all the listings
+To change what keyword is being monitored, edit backend/.env
 
 ## Contributing
 Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
