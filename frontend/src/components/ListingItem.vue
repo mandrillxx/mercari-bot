@@ -185,16 +185,26 @@
                 </svg>
               </span>
             </div>
-            <a
-              :href="`https://www.mercari.com/transaction/buy/${
-                listing.offers.url.split('/')[
-                  listing.offers.url.split('/').length - 2
-                ]
-              }/`"
-              class="px-16 py-1 bg-[#5356ee] text-white hover:text-[#5356ee] hover:bg-white transistion-all duration-300 font-bold rounded mt-2"
-            >
-              Purchase
-            </a>
+            <div class="flex flex-col text-center">
+              <a
+                :href="`https://www.mercari.com/transaction/buy/${
+                  listing.offers.url.split('/')[
+                    listing.offers.url.split('/').length - 2
+                  ]
+                }/`"
+                class="px-16 py-1 bg-[#5356ee] text-white hover:bg-[#5356ee]/50 transistion-all duration-300 font-bold rounded mt-2"
+              >
+                Purchase
+              </a>
+              <a
+                :href="`https://www.ebay.com/sch/i.html?_from=R40&_nkw=${encodeURIComponent(
+                  listing.name
+                )}&_sacat=139973&rt=nc&LH_Sold=1&LH_Complete=1`"
+                class="px-16 py-1 bg-[#5356ee] text-white hover:bg-[#5356ee]/50 transistion-all duration-300 font-bold rounded mt-2"
+              >
+                Similar Sold
+              </a>
+            </div>
           </div>
         </div>
       </div>

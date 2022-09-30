@@ -17,4 +17,6 @@ declare global {
     reviews?: number;
     sales?: number;
   };
+
+  type RetrieveMethod = 'workers' | 'interval';
 }

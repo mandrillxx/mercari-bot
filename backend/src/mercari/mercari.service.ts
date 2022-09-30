@@ -3,12 +3,21 @@ import { Interval } from '@nestjs/schedule';
 import { Browser, Page } from 'puppeteer';
 import { HTMLElement, parse } from 'node-html-parser';
 import { Server } from 'socket.io';
-import { KEYWORD } from 'src/app.environment';
+import {
+  KEYWORD,
+  INTERVAL,
+  WORKERS,
+  RETRIEVE_METHOD,
+} from 'src/app.environment';
 import { InjectContext } from 'nest-puppeteer';
+import { Cron, CronExpression } from '@nestjs/schedule';
 
 @Injectable()
 export class MercariService {
   public socket: Server;
+  private pages: Page[] = [];
+
+  private running: boolean = false;
   private seenListings: string[] = [];
 
   constructor(
@@ -62,29 +71,66 @@ export class MercariService {
     return this.htmlToListingInfo(root, listing);
   }
 
-  async getNewListings(): Promise<Listing[] | null> {
-    const page: Page = await this.browser.newPage();
-    await page.goto(
-      `https://www.mercari.com/search/?keyword=${KEYWORD}&sortBy=2`,
-      {
-        waitUntil: 'networkidle2',
-      },
-    );
-    const root: HTMLElement = parse(await page.content());
-    await page.close();
-    const htmlListings: HTMLElement[] = root.querySelectorAll(
-      "div[data-testid='ItemContainer']",
-    );
-    const listings: Listing[] = await this.htmlToListing(htmlListings);
+  async getNewListings(index: number | null): Promise<Listing[] | null> {
+    if (!index) {
+      const page: Page = await this.browser.newPage();
+      await page.goto(
+        `https://www.mercari.com/search/?keyword=${KEYWORD}&sortBy=2`,
+        {
+          waitUntil: 'networkidle2',
+        },
+      );
+      const root: HTMLElement = parse(await page.content());
+      await page.close();
+      const htmlListings: HTMLElement[] = root.querySelectorAll(
+        "div[data-testid='ItemContainer']",
+      );
+      const listings: Listing[] = await this.htmlToListing(htmlListings);
 
-    return listings.filter((listing) => this.isNewListing(listing));
+      return listings.filter((listing) => this.isNewListing(listing));
+    } else {
+      if (!this.pages[index]) {
+        this.pages[index] = await this.browser.newPage();
+        await this.pages[index].goto(
+          `https://www.mercari.com/search/?keyword=${KEYWORD}&sortBy=2`,
+          {
+            waitUntil: 'networkidle2',
+          },
+        );
+      } else {
+        await this.pages[index].reload({ waitUntil: 'networkidle2' });
+      }
+
+      const root: HTMLElement = parse(await this.pages[index].content());
+      const htmlListings: HTMLElement[] = root.querySelectorAll(
+        "div[data-testid='ItemContainer']",
+      );
+      const listings: Listing[] = await this.htmlToListing(htmlListings);
+
+      return listings.filter((listing) => this.isNewListing(listing));
+    }
   }
 
-  @Interval(2000)
+  @Interval(INTERVAL)
   async retrieveNewListings() {
-    const newListings: Listing[] = await this.getNewListings();
-    if (newListings) {
-      this.socket.emit('newListings', newListings);
+    if (!this.running && RETRIEVE_METHOD === 'workers') {
+      this.running = true;
+      while (this.running) {
+        const newItems: Listing[] = await Promise.all(
+          Array.from(Array(+WORKERS).keys()).map(async (index) => {
+            return await this.getNewListings(index);
+          }),
+        ).then((items) => items.flat());
+
+        if (newItems) {
+          this.socket.emit('newListings', newItems);
+        }
+      }
+    } else if (RETRIEVE_METHOD === 'interval') {
+      const newItems: Listing[] = await this.getNewListings(null);
+      if (newItems) {
+        this.socket.emit('newListings', newItems);
+      }
     }
   }
 }
