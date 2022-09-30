@@ -12,3 +12,5 @@ export const WORKERS = process.env.WORKERS || 3;
 
 export const RETRIEVE_METHOD: RetrieveMethod =
   (process.env.RETRIEVE_METHOD as RetrieveMethod) || 'workers';
+
+export const MORE_INFO: boolean = !!process.env.MORE_INFO || false;

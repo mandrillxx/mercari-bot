@@ -8,6 +8,7 @@ import {
   INTERVAL,
   WORKERS,
   RETRIEVE_METHOD,
+  MORE_INFO,
 } from 'src/app.environment';
 import { InjectContext } from 'nest-puppeteer';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -16,6 +17,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 export class MercariService {
   public socket: Server;
   private pages: Page[] = [];
+  private moreInfoQueue: string[] = [];
 
   private running: boolean = false;
   private seenListings: string[] = [];
@@ -30,8 +32,7 @@ export class MercariService {
         const listing: Listing = JSON.parse(
           el.querySelector('script[type="application/ld+json"]')!.innerHTML,
         );
-        //return await this.populateListingInfo(listing);
-        return listing;
+        return MORE_INFO ? await this.populateListingInfo(listing) : listing;
       }),
     );
   }
@@ -46,19 +47,26 @@ export class MercariService {
           .replace('$', '')
       : 0;
 
+    const username = html.querySelector('h2.H2--dxoqa5.kSkomM')
+      ? html.querySelector('h2.H2--dxoqa5.kSkomM').innerText
+      : 'N/A';
+
+    const reviews: number = html.querySelector('h6.H6--10dwjli.gpaiKj')
+      ? +html.querySelector('h6.H6--10dwjli.gpaiKj').innerText
+      : 0;
+
     return {
       ...listing,
-      delivery: deliveryFee || 0,
+      delivery: deliveryFee,
+      reviews: reviews,
+      username: username,
     };
   }
 
   isNewListing(listing: Listing): boolean {
-    if (this.seenListings.includes(listing.offers.url)) {
-      return false;
-    } else {
-      this.seenListings.push(listing.offers.url);
-      return true;
-    }
+    if (this.seenListings.includes(listing.offers.url)) return false;
+    this.seenListings.push(listing.offers.url);
+    return true;
   }
 
   async populateListingInfo(listing: Listing): Promise<Listing> {
